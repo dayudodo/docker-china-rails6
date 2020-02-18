@@ -1,0 +1,41 @@
+version: '3'
+
+# 此卷要与下面postgresql中相一致！
+volumes:
+  db-data:
+services:
+  db:
+    image: mysql:5.6.47
+    restart: always
+    volumes:
+      - db-data:/var/lib/mysql
+    ports:
+      - '3306:3306'
+    # 提供了数据库用户名和密码,更喜欢写在配置文件中
+    # 但需要保留env, 生产环境中，env不能上传。
+    # env_file:
+    #   - '.env'
+    environment:
+      MYSQL_ROOT_PASSWORD: docker
+
+  app:
+    image: demo/docker-china-rails6
+    # links:
+    #   - db
+    depends_on:
+      - db
+    # 当运行docker-compose up的时候会自动创建容器，存在则跳过。
+    # build: .
+    # 当前目录映射到容器内/var/app目录
+    volumes:
+      - .:/var/app
+    # 将gems都安装在项目目录中。  
+    environment:
+      - BUNDLE_PATH=/var/app/vendor/bundle
+    # 宿主机通过4000访问容器内部的3000端口
+    ports:
+      - '4000:3000'
+    # 每次运行的时候都先把server.pid给干掉，免费出现奇怪的问题！
+    command: bash -c "rm -f tmp/pids/server.pid && bundle exec rails s -p 3000 -b '0.0.0.0'"
+    # env_file: 
+    #   - .env
